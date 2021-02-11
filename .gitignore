@@ -1,0 +1,13 @@
+# r temporary files
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# other temporary files
+totalcensus
+
+# things im deciding on whether or not to include
+census/
+generated/
+shapefiles/
