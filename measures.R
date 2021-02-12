@@ -584,6 +584,7 @@ for (i in c(1:n_filenames)) {
     ),
     output_file
   ) 
+  cat("\n")
   
   # Low-memory version (much slower)
   #for (path in files[filename == filename_, path]) {
