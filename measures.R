@@ -13,7 +13,7 @@ output_directory <- "generated"
 
 years <- c(2009:2019)
 
-geometries <- c("tract", "block group")
+geometries <- c("county", "tract", "block group")
 
 # Originally located in my home directory due to the very long download not
 # playing well with the stability of qnap3; later moved to qnap3. See the setup
@@ -56,6 +56,15 @@ inflation_target_year <- max(inflation_adjustments$year)
 for (year in years) {
   for (geometry in geometries) {
     cat(sprintf("Processing: %s %ss\nCalculating:\n", year, geometry))
+
+
+# Loop variables ----------------------------------------------------------
+
+geometry_plural <- paste0(gsub("y", "ie", geometry), "s")
+geometry_underscores <- gsub(" ", "_", geometry_plural)
+
+# for scoping issues where a column is also named `year`
+year_ <- year
 
 # Plain Census values -----------------------------------------------------
 
@@ -167,9 +176,6 @@ cat("FIXME: UNIMPLEMENTED\n")
 # These need to be inflation-adjusted
 
 cat("* Currency-vased variables...")
-
-# for scoping issues where a column is also named `year`
-year_ <- year
 
 # can't figure out how to dynamically set the index for a list in R so a
 # temporary list is being created here instead
@@ -407,7 +413,7 @@ cat(" ok\n")
 
 output_file <- file.path(
   output_directory,
-  sprintf("%d_%ss.csv.gz", year, str_replace(geometry, " ", "_"))
+  sprintf("%d_%s.csv.gz", year, geometry_underscores)
 )
 cat(sprintf("Joining and writing to %s...", output_file))
 
@@ -441,7 +447,9 @@ cat(" ok\n")
 # Wide
 cat("Merging into wide format:")
 for (geometry in geometries) {
-  cat(sprintf("* %ss:", geometry))
+  cat(sprintf("* %s:", geometry_plural))
+  geometry_plural <- paste0(gsub("y", "ie", geometry), "s")
+  geometry_underscores <- gsub(" ", "_", geometry_plural)
   
   merged <- Reduce(
     #function(x, y) left_join(x, y, by = "GEOID"), # dplyr
@@ -453,7 +461,7 @@ for (geometry in geometries) {
         fread(
           file.path(
             output_directory,
-            sprintf("%d_%ss.csv.gz", year, str_replace(geometry, " ", "_"))
+            sprintf("%d_%s.csv.gz", year, geometry_underscores)
           )
         ) %>%
           rename_all(paste0, "_", year) %>%
@@ -468,10 +476,10 @@ for (geometry in geometries) {
     file.path(
       output_directory,
       sprintf(
-        "time_series_%s_to_%s_%ss_wide.csv.gz",
+        "time_series_%s_to_%s_%s_wide.csv.gz",
         min(years),
         max(years),
-        str_replace(geometry, " ", "_")
+        geometry_underscores
       )
     )
   )
@@ -483,7 +491,9 @@ for (geometry in geometries) {
 # Long
 cat("Writing into long format:")
 for (geometry in geometries) {
-  cat(sprintf("* %ss:", geometry))
+  cat(sprintf("* %s:", geometry_plural))
+  geometry_plural <- paste0(gsub("y", "ie", geometry), "s")
+  geometry_underscores <- gsub(" ", "_", geometry_plural)
   
   # can't figure out how to append to .csv.gz files in R so we just concatenate
   # everything before writing it out
@@ -495,7 +505,7 @@ for (geometry in geometries) {
         fread(
           file.path(
             output_directory,
-            sprintf("%d_%ss.csv.gz", year, str_replace(geometry, " ", "_"))
+            sprintf("%d_%s.csv.gz", year, geometry_underscores)
           )
         ) %>%
           mutate(year = year)
@@ -509,10 +519,10 @@ for (geometry in geometries) {
     file.path(
       output_directory,
       sprintf(
-        "time_series_%s_to_%s_%ss_long.csv.gz",
+        "time_series_%s_to_%s_%s_long.csv.gz",
         min(years),
         max(years),
-        str_replace(geometry, " ", "_")
+        geometry_underscores
       )
     )
   )
