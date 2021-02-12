@@ -430,7 +430,7 @@ Reduce(
   function(x, y) left_join(x, y, by = "GEOID"),
   list(
     census_vars,
-    nullable_census_vars,
+    #nullable_census_vars,
     currency_vars,
     age_dist,
     edu_dist,
