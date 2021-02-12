@@ -454,7 +454,7 @@ cat(" ok\n")
 # Merge yearly files into one ---------------------------------------------
 
 # Wide
-cat("Merging into wide format:")
+cat("Merging into wide format:\n")
 for (geometry in geometries) {
   cat(sprintf("* %s:", geometry_plural))
   geometry_plural <- paste0(gsub("y", "ie", geometry), "s")
@@ -498,7 +498,7 @@ for (geometry in geometries) {
 }
 
 # Long
-cat("Writing into long format:")
+cat("Writing into long format:\n")
 for (geometry in geometries) {
   cat(sprintf("* %s:", geometry_plural))
   geometry_plural <- paste0(gsub("y", "ie", geometry), "s")
