@@ -53,6 +53,9 @@ inflation_target_year <- max(inflation_adjustments$year)
 # Don't run this section if you are working with a specific set of constants
 # from above
 
+total <- length(states) * length(years) * length(geometries)
+i <- 0
+
 for (state in states) {
   output_subdirectory <- file.path(output_directory, tolower(state))
   dir.create(output_subdirectory, showWarnings = FALSE)
@@ -65,7 +68,12 @@ for (state in states) {
       geometry_plural <- paste0(gsub("y", "ie", geometry), "s")
       geometry_underscores <- gsub(" ", "_", geometry_plural)
       
-      cat(sprintf("Processing: %s %s\nCalculating:\n", year, geometry_plural))
+      i <- i + 1
+      
+      cat(sprintf(
+        "(%d/%d) Processing: %s %s %s\nCalculating:\n",
+        i, total, year, state, geometry_plural
+      ))
 
 # Plain Census values -----------------------------------------------------
 
