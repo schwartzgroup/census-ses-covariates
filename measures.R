@@ -5,6 +5,7 @@ library(dplyr)
 library(readxl)
 library(stringr)
 library(totalcensus)
+library(tidyr)
 
 #states <- states_DC
 states <- c("MA")
@@ -34,6 +35,9 @@ Sys.setenv(PATH_TO_CENSUS = totalcensus_path)
 # Sig figs obtained by entering very large numbers
 inflation_adjustments <- fread("inflation_adjustment.csv")
 inflation_target_year <- max(inflation_adjustments$year)
+
+# State FIPS code, used for sorting processes in the final merge
+state_fips_codes <- fread("state_fips_codes.csv")
 
 # One-time setup ----------------------------------------------------------
 # Pre-download all the data so we don't get prompted during the main loop
@@ -542,4 +546,64 @@ for (geometry in geometries) {
 
 # End main loop -----------------------------------------------------------
 
+}
+
+# Merge for nationwide block groups ---------------------------------------
+
+files <- data.table(
+  path = Sys.glob(file.path(output_directory, "*", "*"))
+) %>%
+  separate(
+    path,
+    c(NA, "abbreviation", "filename"),
+    sep = "/",
+    remove = FALSE
+  ) %>%
+  mutate(
+    abbreviation = toupper(abbreviation)
+  ) %>%
+  left_join(state_fips_codes) %>%
+  arrange(fips, filename) # so that the merged data will be sorted
+
+filenames <-sort(unique(files$filename))
+n_filenames <- length(filenames)
+
+for (i in c(1:n_filenames)) {
+  filename_ <- filenames[i] # underscore to prevent column name conflict
+  output_file <- file.path(output_directory, filename_)
+  first <- TRUE
+  
+  cat(sprintf("(%d/%d) merging %s", i, n_filenames, filename_))
+ 
+  fwrite(
+    rbindlist(
+      lapply(
+        files[filename == filename_, path],
+        fread
+      )
+    ),
+    output_file
+  ) 
+  
+  # Low-memory version (much slower)
+  #for (path in files[filename == filename_, path]) {
+  #  if (first) { # copy the first file
+  #    file.copy(path, output_directory)
+  #  } else { # copy lines from other files
+  #    fp_input <- gzfile(path)
+  #    fp_output <- gzfile(output_file, "at")
+  #    header <- readLines(fp_input, n = 1) # discard the header
+  #    while (TRUE) {
+  #      line <- readLines(fp_input, n = 1)
+  #      if (length(line) == 0) {
+  #        break
+  #      } else {
+  #        writeLines(line, fp_output)
+  #      }
+  #    }
+  #  }
+  #  first  <- FALSE
+  #  cat(".")
+  #}
+  #cat(" ok\n")
 }
