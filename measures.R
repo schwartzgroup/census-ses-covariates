@@ -53,18 +53,19 @@ inflation_target_year <- max(inflation_adjustments$year)
 # Don't run this section if you are working with a specific set of constants
 # from above
 
-for (year in years) {
-  for (geometry in geometries) {
-    cat(sprintf("Processing: %s %ss\nCalculating:\n", year, geometry))
-
-
-# Loop variables ----------------------------------------------------------
-
-geometry_plural <- paste0(gsub("y", "ie", geometry), "s")
-geometry_underscores <- gsub(" ", "_", geometry_plural)
-
-# for scoping issues where a column is also named `year`
-year_ <- year
+for (state in states) {
+  output_subdirectory <- file.path(output_directory, tolower(state))
+  dir.create(output_subdirectory, showWarnings = FALSE)
+  
+  for (year in years) {
+    # for scoping issues where a column is also named `year`
+    year_ <- year
+    
+    for (geometry in geometries) {
+      geometry_plural <- paste0(gsub("y", "ie", geometry), "s")
+      geometry_underscores <- gsub(" ", "_", geometry_plural)
+      
+      cat(sprintf("Processing: %s %s\nCalculating:\n", year, geometry_plural))
 
 # Plain Census values -----------------------------------------------------
 
@@ -72,7 +73,7 @@ cat("* Plain variables...")
 
 census_vars <- read_acs5year(
   year = year,
-  states = states,
+  states = c(state),
   table_contents = c(
     #"population = B01001_001", # already included by totalcensus by default
     
@@ -149,7 +150,7 @@ cat("* Nullable variables...")
 
 #nullable_census_vars <- read_acs5year(
 #  year = year,
-#  states = states,
+#  states = c(state),
 #  table_contents = c(
 #    # temporary variables, to be used to calculate others and then removed later
 #    "labor_force = B23025_002",
@@ -185,7 +186,7 @@ mutate_across_funs[[as.character(inflation_target_year)]] <-
 
 currency_vars <- read_acs5year(
   year = year,
-  states = states,
+  states = c(state),
   table_contents = c(
     "med_household_income = B19013_001",
     "med_family_income = B19113_001",
@@ -208,7 +209,7 @@ cat("* Age Distribution...")
 
 age_dist <- read_acs5year(
   year = year,
-  states = states,
+  states = c(state),
   table_contents = sapply(
     c(3:25, 27:49), # 003-025: Male; 027-049: Female
     function(x) sprintf("B01001_%03d", x)
@@ -251,7 +252,7 @@ cat("* Education distrubtion...")
 
 edu_dist <- read_acs5year(
   year = year,
-  states = states,
+  states = c(state),
   table_contents = sapply(
     c(4:83),
     function(x) sprintf("B15001_%03d", x)
@@ -294,7 +295,7 @@ cat("* Gini index...")
 
 gini_index <- read_acs5year(
   year = year,
-  states = states,
+  states = c(state),
   table_contents = "gini_index = B19083_001",
   summary_level = geometry,
   show_progress = FALSE
@@ -313,7 +314,7 @@ cat("* Ethnic fractionalization...")
 
 ethnic_fractionalization <- read_acs5year(
   year = year,
-  states = states,
+  states = c(state),
   table_contents = c(
     "race_total = B03002_001",
     "non_hispanic_white = B03002_003",
@@ -352,7 +353,7 @@ row <- read_excel("B19001_cutoffs.xlsx") %>%
 
 ice_income <- read_acs5year(
   year = year,
-  states = states,
+  states = c(state),
   table_contents = sapply(
     c(1:17),
     function(x) sprintf("B19001_%03d", x)
@@ -393,7 +394,7 @@ cat("* Index of concentration at the extremes (race/ethnicity)...")
 
 ice_race_ethnicity <- read_acs5year(
   year = year,
-  states = states,
+  states = c(state),
   table_contents = c(
     "race_total = B03002_001",
     "non_hispanic_white = B03002_003",
@@ -412,7 +413,7 @@ cat(" ok\n")
 # Join all and write out -----------------------------------------------
 
 output_file <- file.path(
-  output_directory,
+  output_subdirectory,
   sprintf("%d_%s.csv.gz", year, geometry_underscores)
 )
 cat(sprintf("Joining and writing to %s...", output_file))
@@ -435,7 +436,7 @@ Reduce(
 
 cat(" ok\n")
 
-# End loops ---------------------------------------------------------------
+# End small loops ---------------------------------------------------------
 # Don't run this section if you didn't run the start loops section
 
     cat("Done\n\n")
@@ -460,7 +461,7 @@ for (geometry in geometries) {
         cat(sprintf(" %s...", year))
         fread(
           file.path(
-            output_directory,
+            output_subdirectory,
             sprintf("%d_%s.csv.gz", year, geometry_underscores)
           )
         ) %>%
@@ -474,7 +475,7 @@ for (geometry in geometries) {
   fwrite(
     merged,
     file.path(
-      output_directory,
+      output_subdirectory,
       sprintf(
         "time_series_%s_to_%s_%s_wide.csv.gz",
         min(years),
@@ -504,7 +505,7 @@ for (geometry in geometries) {
         cat(sprintf(" %s...", year))
         fread(
           file.path(
-            output_directory,
+            output_subdirectory,
             sprintf("%d_%s.csv.gz", year, geometry_underscores)
           )
         ) %>%
@@ -517,7 +518,7 @@ for (geometry in geometries) {
   fwrite(
     concatenated,
     file.path(
-      output_directory,
+      output_subdirectory,
       sprintf(
         "time_series_%s_to_%s_%s_long.csv.gz",
         min(years),
@@ -529,4 +530,8 @@ for (geometry in geometries) {
 
   cat(" ok\n")
   rm(concatenated)
+}
+
+# End main loop -----------------------------------------------------------
+
 }
