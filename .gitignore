@@ -10,4 +10,5 @@ totalcensus
 # things im deciding on whether or not to include
 census/
 generated/
-shapefiles/
+crosswalks/
+tiger/
