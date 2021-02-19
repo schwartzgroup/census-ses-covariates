@@ -41,7 +41,7 @@ state_fips_codes <- fread("inputs/state_fips_codes.csv")
 
 # Cutoffs for inflation-adjusted 20th and 80th percentile income categories used
 # in the B19001 table
-b19001_cutoffs <- read_excel("B19001_cutoffs.xlsx")
+b19001_cutoffs <- read_excel("inputs/B19001_cutoffs.xlsx")
 
 # One-time setup ----------------------------------------------------------
 # Pre-download all the data so we don't get prompted during the main loop
