@@ -33,11 +33,15 @@ Sys.setenv(PATH_TO_CENSUS = totalcensus_path)
 
 # Inflation adjustments, obtained from the BLS CPI calculator
 # Sig figs obtained by entering very large numbers
-inflation_adjustments <- fread("inflation_adjustment.csv")
+inflation_adjustments <- fread("inputs/inflation_adjustment.csv")
 inflation_target_year <- max(inflation_adjustments$year)
 
 # State FIPS code, used for sorting processes in the final merge
-state_fips_codes <- fread("state_fips_codes.csv")
+state_fips_codes <- fread("inputs/state_fips_codes.csv")
+
+# Cutoffs for inflation-adjusted 20th and 80th percentile income categories used
+# in the B19001 table
+b19001_cutoffs <- read_excel("B19001_cutoffs.xlsx")
 
 # One-time setup ----------------------------------------------------------
 # Pre-download all the data so we don't get prompted during the main loop
@@ -358,7 +362,7 @@ cat("* Index of concentration at the extremes (income)...")
 # https://www.bls.gov/data/inflation_calculator.htm
 # comparing $1,000 in december 2019 to december 20xx then dividing by $1,000
 # using $1,000 for extra precision
-row <- read_excel("B19001_cutoffs.xlsx") %>%
+row <- b19001_cutoffs %>%
   filter(str_starts(year, as.character(.GlobalEnv$year))) %>%
   head(1) %>% # there are some years with multiple rows, e.g. 2013 -> 2013 (39) and 2013 (38); TODO: fix
   as.list()
