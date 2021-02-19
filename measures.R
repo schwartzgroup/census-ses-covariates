@@ -164,30 +164,62 @@ cat(" ok\n")
 
 cat("* Nullable variables...")
 
-#nullable_census_vars <- read_acs5year(
-#  year = year,
-#  states = c(state),
-#  table_contents = c(
-#    # temporary variables, to be used to calculate others and then removed later
-#    "labor_force = B23025_002",
-#    "unemployed = B23025_005"
-#  ),
-#  summary_level = geometry,
-#  show_progress = FALSE
-#) %>%
-#  mutate(
-#    pct_elligible_unemployed = unemployed / labor_force
-#  ) %>%
-#  select(
-#    # extra variables added by totalcensus
-#    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat,
-#    
-#    # discard temporary variables
-#    -labor_force, -unemployed
-#  )
-#
-#cat(" ok\n")
-cat("FIXME: UNIMPLEMENTED\n")
+nullable_column_definitions <- c(
+  "labor_force = B23025_002",
+  "unemployed = B23025_005"
+)
+
+# we are assuming that census_vars ran correctly and can use its GEOID column
+# here to build the nullable variables table
+geoids <- census_vars[,GEOID]
+
+# if a census table exists, return the column as defined by the `totalcensus`
+# column definition; otherwise, return it filled with NA
+get_nullable_column <- function(column_definition) {
+  column_name <- str_extract(column_definition, "[^ =]+")
+  return(
+    tryCatch(
+      {
+        read_acs5year(
+          year = year,
+          states = c(state),
+          table_contents = c(column_definition),
+          summary_level = geometry,
+          show_progress = FALSE
+        ) %>%
+          select(GEOID, !!as.name(column_name))
+      },
+      error = function(x) {
+        return(
+          census_vars %>%
+            select(GEOID) %>%
+            mutate(!!as.name(column_name) := NA)
+        )
+      }
+    )
+  )
+}
+
+nullable_census_vars <- Reduce(
+  function(x, y) x[y, on = "GEOID"],
+  lapply(
+    nullable_column_definitions,
+    get_nullable_column
+  )
+) %>%
+  mutate(
+    # convert pct_* columns into actual percentages
+    across(starts_with("pct_"), ~./population),
+    
+    # manual calculations
+    pct_elligible_unemployed = unemployed / labor_force
+  ) %>%
+  select(
+    # drop temporary columns
+    -unemployed, -labor_force
+  )
+
+cat(" ok\n")
 
 # Currency-based variables ------------------------------------------------
 # These need to be inflation-adjusted
@@ -214,7 +246,7 @@ currency_vars <- read_acs5year(
   mutate(across(starts_with("med_"), mutate_across_funs)) %>%
   select(
     # extra variables added by totalcensus
-    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat
+    -population, -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat
   )
 
 cat(" ok\n")
@@ -438,7 +470,7 @@ Reduce(
   function(x, y) left_join(x, y, by = "GEOID"),
   list(
     census_vars,
-    #nullable_census_vars,
+    nullable_census_vars,
     currency_vars,
     age_dist,
     edu_dist,
