@@ -1,6 +1,6 @@
 # census-ses-covariates
 
-Scripts to aid in spatially joining longitudinal Census data
+Scripts to aid in generating and spatially joining longitudinal Census data
 
 ![Workflow](workflow.png)
 
