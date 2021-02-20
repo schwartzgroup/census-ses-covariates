@@ -7,8 +7,7 @@ library(stringr)
 library(totalcensus)
 library(tidyr)
 
-#states <- states_DC
-states <- c("MA")
+states <- states_DC
 
 output_directory <- file.path("outputs", "tables")
 
