@@ -2,6 +2,8 @@
 
 Scripts to aid in spatially joining longitudinal Census data
 
+![Workflow](workflow.png)
+
 ### Quick start
 
 1. Run `measures.R` to generate longitudinal covariate tables.
