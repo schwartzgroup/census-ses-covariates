@@ -10,7 +10,7 @@ library(tidyr)
 #states <- states_DC
 states <- c("MA")
 
-output_directory <- "generated"
+output_directory <- file.path("outputs", "tables")
 
 years <- c(2009:2019)
 
@@ -21,11 +21,12 @@ geometries <- c("county", "tract", "block group")
 # section below.
 #totalcensus_path <- "/media/qnap3/Covariates/totalcensus/"
 #totalcensus_path <- "/home/edgar/totalcensus/"
-totalcensus_path <- "./totalcensus/"
+totalcensus_path <- file.path("external", "totalcensus")
 
 # Setup --------------------------------------------------------------------
 
-dir.create(output_directory, showWarnings = FALSE)
+dir.create(totalcensus_path, showWarnings = FALSE, recursive = TRUE)
+dir.create(output_directory, showWarnings = FALSE, recursive = TRUE)
 
 # Official docs of `totalcensus` say to use `set_path_to_census` but that
 # function requires user interaction

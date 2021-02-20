@@ -5,8 +5,8 @@ library(dplyr)
 library(glue)
 library(sf)
 
-output_directory <- "crosswalks"
-shapefiles_directory <- "tiger"
+output_directory <- file.path("external", "crosswalks")
+shapefiles_directory <- file.path("external", "tiger")
 
 years <- c(2009:2019)
 geometries <- c("tract", "bg") # TODO: country is only available statewide
@@ -22,7 +22,8 @@ urls_post_2010 <- "https://www2.census.gov/geo/tiger/TIGER{year}/{geometry_caps}
 
 # Setup -------------------------------------------------------------------
 
-dir.create(output_directory, showWarnings = FALSE)
+dir.create(shapefiles_directory, showWarnings = FALSE, recursive = TRUE)
+dir.create(output_directory, showWarnings = FALSE, recursive = TRUE)
 
 # State FIPS codes, used to pull state names
 state_fips_codes <- read.csv("inputs/state_fips_codes.csv")
