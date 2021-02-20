@@ -225,7 +225,6 @@ tiger_line_deltas <- function(statefp, years, geometry) {
   return(deltas)
 }
 
-
 # create a crosswalk and accompanying shapefile containing only changes and
 # amendments between years
 generate_crosswalk <- function(statefp, years, geometry) {
@@ -234,17 +233,25 @@ generate_crosswalk <- function(statefp, years, geometry) {
   
   # generate crosswalk
   cat("Generating crosswalk...")
-  all_crosswalks <- list()
-  latest_changes <- data.frame()
+  yearly_crosswalk <- list()
+  current_year_crosswalk <- data.frame()
   for (i in c(1:length(years))) {
     delta <- deltas[[i]]
     year <- years[i]
     amendments <- c(delta$added, delta$changed)
     
-    # amendments
+    # removals and changes
+    if (nrow(current_year_crosswalk) > 0) { # can't filter if there are no rows
+      current_year_crosswalk <- filter(
+        current_year_crosswalk,
+        !GEOID %in% c(delta$removed, delta$changed)
+      )
+    }
+    
+    # additions and changes
     if (length(amendments) > 1) {
-      latest_changes <- rbind(
-        latest_changes,
+      current_year_crosswalk <- rbind(
+        current_year_crosswalk,
         data.frame(
           GEOID = amendments,
           amended = year
@@ -252,14 +259,13 @@ generate_crosswalk <- function(statefp, years, geometry) {
       )
     }
     
-    # removals
-    latest_changes <- filter(latest_changes, !(GEOID %in% delta$removed))
-    
     # append to all crosswalks
-    all_crosswalks[[i]] <- mutate(latest_changes, year = year)
+    yearly_crosswalk[[i]] <- mutate(current_year_crosswalk, year = year)
+    
+    print(nrow(current_year_crosswalk))
   }
-  crosswalk <- do.call("rbind", all_crosswalks)
-  remove(all_crosswalks)
+  crosswalk <- do.call("rbind", yearly_crosswalk)
+  remove(yearly_crosswalk)
   cat(sprintf(" %d rows\n", nrow(crosswalk)))
   
   # generate normalized universal tiger sf
