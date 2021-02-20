@@ -249,7 +249,7 @@ generate_crosswalk <- function(statefp, years, geometry) {
     }
     
     # additions and changes
-    if (length(amendments) > 1) {
+    if (length(amendments) > 0) {
       current_year_crosswalk <- rbind(
         current_year_crosswalk,
         data.frame(
