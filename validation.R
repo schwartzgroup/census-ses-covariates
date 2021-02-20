@@ -48,7 +48,7 @@ test_that("Correct number of tracts per year", {
   expect_equal(as.numeric(table(measures$year)), c(1366, tracts_2010_to_2019))
 })
 
-test_that("Similar overall population density (2010)", {
+test_that("Similar overall population density to 2010 Census", {
   # There will be some discrepancy due to use of ACS 5-year estimates rather
   # than 2010 Decennial Census data
   tolerance <- 0.05 # percent difference
@@ -74,7 +74,7 @@ test_that("Similar overall population density (2010)", {
 
 # Will rely on the `tigris` library for external validation here
 if (allow_internet) {
-  test_that("Matching GEOIDs and similar areas (2010-2019)", {
+  test_that("Matching GEOIDs and similar areas to 2010-2019 shapefiles", {
     tolerance <- 0.01 # percent difference
     
     # Having issues getting 2009 tracts via tigris so only testing 2010-2019
