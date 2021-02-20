@@ -5,7 +5,7 @@ library(dplyr)
 library(glue)
 library(sf)
 
-output_directory <- file.path("external", "crosswalks")
+output_directory <- file.path("outputs", "crosswalks")
 shapefiles_directory <- file.path("external", "tiger")
 
 years <- c(2009:2019)
