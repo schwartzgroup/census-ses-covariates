@@ -120,7 +120,7 @@ land_areas <- function(tiger_sf) {
 # * sf_amendments - sf object with all added or changed geoids
 tiger_line_diffs <- function(tiger_1,
                              tiger_2,
-                             area_change_threshold = 0.05,
+                             area_change_threshold = 0.001,
                              amendment_year = NA
                              ) {
   geoid_column_1 <- geoid_column_name(tiger_1)
