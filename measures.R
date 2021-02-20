@@ -481,7 +481,8 @@ Reduce(
     ice_race_ethnicity
   )
 ) %>%
-    fwrite(output_file)
+  mutate(GEOID = as.character(GEOID)) %>% # disable scientific notation
+  fwrite(output_file)
 
 cat(" ok\n")
 
