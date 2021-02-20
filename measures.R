@@ -37,7 +37,7 @@ Sys.setenv(PATH_TO_CENSUS = totalcensus_path)
 inflation_adjustments <- fread("inputs/inflation_adjustment.csv")
 inflation_target_year <- max(inflation_adjustments$year)
 
-# State FIPS code, used for sorting processes in the final merge
+# State FIPS codes, used for sorting processes in the final merge
 state_fips_codes <- fread("inputs/state_fips_codes.csv")
 
 # Cutoffs for inflation-adjusted 20th and 80th percentile income categories used
@@ -239,7 +239,7 @@ currency_vars <- read_acs5year(
   table_contents = c(
     "med_household_income = B19013_001",
     "med_family_income = B19113_001",
-    "median_property_value = B25077_001"
+    "med_property_value = B25077_001"
   ),
   summary_level = geometry,
   show_progress = FALSE
