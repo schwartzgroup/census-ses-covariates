@@ -120,7 +120,7 @@ land_areas <- function(tiger_sf) {
 # * sf_amendments - sf object with all added or changed geoids
 tiger_line_diffs <- function(tiger_1,
                              tiger_2,
-                             area_change_threshold = 0.001,
+                             area_change_threshold = 0.05,
                              amendment_year = NA
                              ) {
   geoid_column_1 <- geoid_column_name(tiger_1)
@@ -293,8 +293,7 @@ generate_crosswalk <- function(statefp, years, geometry) {
 if (FALSE) { # just to keep this from running under normal use
   
 ## https://www.census.gov/programs-surveys/acs/technical-documentation/table-and-geography-changes/2011/geography-changes.html
-# tract changes in new york from 2010 to 2011:
-# 2x(11 renames) + 3 merges = 25 changes in both directions
+# 2011 New York: 11 renamed, 1 removed, 3 changed
 tiger_line_diffs(
   load_shapefile(36, 2010, "tract"),
   load_shapefile(36, 2011, "tract")
@@ -302,14 +301,14 @@ tiger_line_diffs(
     lapply(length)
 
 ## https://www.census.gov/programs-surveys/acs/technical-documentation/table-and-geography-changes/2012/geography-changes.html
-# 7 tracts renamed in arizona from 2011 to 2012
+# 2012 Arizona: 7 renamed
 tiger_line_diffs(
   load_shapefile(4, 2011, "tract"),
   load_shapefile(4, 2012, "tract")
 ) %>%
   lapply(length)
 
-# 1 tract renamed in california from 2011 to 2012
+# 2012 California: 1 addition, 1 removal
 tiger_line_diffs(
   load_shapefile(6, 2011, "tract"),
   load_shapefile(6, 2012, "tract")
