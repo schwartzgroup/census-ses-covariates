@@ -594,11 +594,11 @@ for (geometry in geometries) {
 # Merge for nationwide block groups ---------------------------------------
 
 files <- data.table(
-  path = Sys.glob(file.path(output_directory, "*", "*"))
+  path = Sys.glob(file.path(output_directory, "*", "time_series*"))
 ) %>%
   separate(
     path,
-    c(NA, "abbreviation", "filename"),
+    c(NA, NA, "abbreviation", "filename"),
     sep = "/",
     remove = FALSE
   ) %>%
@@ -617,17 +617,20 @@ for (i in c(1:n_filenames)) {
   first <- TRUE
   
   cat(sprintf("(%d/%d) merging %s", i, n_filenames, filename_))
- 
+  
   fwrite(
     rbindlist(
       lapply(
         files[filename == filename_, path],
-        fread
+        function(path) {
+          cat(".") # for progress indicator
+          return(fread(path))
+        }
       )
     ),
     output_file
   ) 
-  cat("\n")
+  cat(" ok\n")
   
   # Low-memory version (much slower)
   #for (path in files[filename == filename_, path]) {
