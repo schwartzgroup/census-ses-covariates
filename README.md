@@ -50,6 +50,23 @@ About 14 GB of space is required to run this script. This is because the script 
 
 This script contains some small tests for validating the generated tables and shapefiles against external sources. This script assumes that `measures.R` and `crosswalk.R` have been run already. Implemented tests:
 
+### formula.R
+
+This is an in-development module that implements a formula interface for generating covariates, so that covariate calculations can be expressed as a simple algebra of Census variable names:
+
+```r
+c(
+  race_total ~ B03002_001,
+  pct_age_21 ~ (B01001_009 + B01001_033) / B01001_001,
+  ethnic_fractionalization ~ 1 - (
+    (B03002_003 / B01001_001)^2 + (B03002_004 / B01001_001)^2 +
+    (B03002_006 / B01001_001)^2 + (B03002_012 / B01001_001)
+  )
+)
+```
+
+A second goal of this module is to decouple the scripts from the `totalcensus` package (e.g. in case `tidycensus` might be preferred), allowing the Census query backend to be swapped out.
+
 ### References
 
 1. Alesina, A., Devleeschauwer, A., Easterly, W., Kurlat, S., & Wacziarg, R. (2003). Fractionalization. Journal of Economic Growth, 8(2), 155–194. https://doi.org/10.1023/A:1024471506938
