@@ -13,6 +13,13 @@ output_directory <- file.path("outputs", "tables")
 
 years <- c(2009:2019)
 
+# TODO: add ability to put `zip code` here
+#
+# need to do some extra work because it's only available for `US` and not
+# individual states, and `zip code` is not a proper summary_level. see `Start
+# loops` section for workaround - need to adjust read_acs5 args
+#
+# temporary workaround: set states <- c("US"), geometries <- c("zip code")
 geometries <- c("county", "tract", "block group")
 
 # Originally located in my home directory due to the very long download not
@@ -82,77 +89,98 @@ for (state in states) {
         "(%d/%d) Processing: %s %s %s\nCalculating:\n",
         i, total, year, state, geometry_plural
       ))
+      
+      # `zip code` is not a valid summary_level
+      if (geometry == "zip code") {
+        global_args <- list(
+          year = year,
+          states = "US",
+          geo_headers = "ZCTA5",
+          summary_level = "860",
+          show_progress = FALSE
+        )
+      } else {
+        global_args <- list(
+          year = year,
+          states = c(state),
+          summary_level = geometry,
+          show_progress = FALSE
+        )
+      }
 
 # Plain Census values -----------------------------------------------------
 
 cat("* Plain variables...")
 
-census_vars <- read_acs5year(
-  year = year,
-  states = c(state),
-  table_contents = c(
-    #"population = B01001_001", # already included by totalcensus by default
-    
-    # temporary variables, to be used to calculate others and then removed later
-    
-    # these variables are actually population counts but will get mutated to
-    # percentages in the `mutate_at() below``
-    "pct_female = B01001_026",
-    "pct_poverty = B17001_002",
-    "pct_public_assistance = B19057_003",
-    "pct_white = B02001_002",
-    "pct_black = B02001_003",
-    "pct_asian = B02001_005",
-    "pct_hispanic_white = B03002_013",
-    "pct_hispanic_black = B03002_014",
-    "pct_hispanic_asian = B03002_016",
-    "pct_non_hispanic_white = B03002_003",
-    "pct_non_hispanic_black = B03002_004",
-    "pct_non_hispanic_asian = B03002_006",
-    "pct_hispanic = B03002_012",
-    # TODO: pct_two_or_more_races
-    
-    "pct_travel_lt_5_min = B08303_002",
-    "pct_travel_5_to_9_min = B08303_003",
-    "pct_travel_10_to_14_min = B08303_004",
-    "pct_travel_15_to_19_min = B08303_005",
-    "pct_travel_20_to_24_min = B08303_006",
-    "pct_travel_25_to_29_min = B08303_007",
-    "pct_travel_30_to_34_min = B08303_008",
-    "pct_travel_35_to_39_min = B08303_009",
-    "pct_travel_40_to_44_min = B08303_010",
-    "pct_travel_45_to_59_min = B08303_011",
-    "pct_travel_60_to_89_min = B08303_012",
-    "pct_travel_gt_90_min = B08303_013",
-    
-    "pct_transport_auto = B08301_002",
-    "pct_transport_public_transit = B08301_010",
-    "pct_transport_bus = B08301_011",
-    "pct_transport_streetcar = B08301_012",
-    "pct_transport_subway = B08301_013",
-    "pct_transport_rail = B08301_014",
-    "pct_transport_taxi = B08301_016",
-    "pct_transport_motorcycle = B08301_017",
-    "pct_transport_bicycle = B08301_018",
-    "pct_transport_walk = B08301_019",
-    "pct_transport_other = B08301_020",
-    "pct_transport_wfh = B08301_021",
-    
-    "pct_renting = B25008_003",
-    
-    "pct_housing_standalone = B25024_002",
-    "pct_housing_1_unit = B25024_003",
-    "pct_housing_2_units = B25024_004",
-    "pct_housing_3_to_4_units = B25024_005",
-    "pct_housing_5_to_9_units = B25024_006",
-    "pct_housing_10_to_19_units = B25024_007",
-    "pct_housing_20_to_49_units = B25024_008",
-    "pct_housing_gt_50_units = B25024_009",
-    "pct_housing_mobile_home = B25024_010",
-    "pct_housing_vehicle = B25024_011"
-  ),
-  summary_level = geometry,
-  show_progress = FALSE
+census_vars <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        #"population = B01001_001", # already included by totalcensus by default
+        
+        # temporary variables, to be used to calculate others and then removed
+        # later
+        
+        # these variables are actually population counts but will get mutated to
+        # percentages in the `mutate_at() below``
+        "pct_female = B01001_026",
+        "pct_poverty = B17001_002",
+        "pct_public_assistance = B19057_003",
+        "pct_white = B02001_002",
+        "pct_black = B02001_003",
+        "pct_asian = B02001_005",
+        "pct_hispanic_white = B03002_013",
+        "pct_hispanic_black = B03002_014",
+        "pct_hispanic_asian = B03002_016",
+        "pct_non_hispanic_white = B03002_003",
+        "pct_non_hispanic_black = B03002_004",
+        "pct_non_hispanic_asian = B03002_006",
+        "pct_hispanic = B03002_012",
+        # TODO: pct_two_or_more_races
+        
+        "pct_travel_lt_5_min = B08303_002",
+        "pct_travel_5_to_9_min = B08303_003",
+        "pct_travel_10_to_14_min = B08303_004",
+        "pct_travel_15_to_19_min = B08303_005",
+        "pct_travel_20_to_24_min = B08303_006",
+        "pct_travel_25_to_29_min = B08303_007",
+        "pct_travel_30_to_34_min = B08303_008",
+        "pct_travel_35_to_39_min = B08303_009",
+        "pct_travel_40_to_44_min = B08303_010",
+        "pct_travel_45_to_59_min = B08303_011",
+        "pct_travel_60_to_89_min = B08303_012",
+        "pct_travel_gt_90_min = B08303_013",
+        
+        "pct_transport_auto = B08301_002",
+        "pct_transport_public_transit = B08301_010",
+        "pct_transport_bus = B08301_011",
+        "pct_transport_streetcar = B08301_012",
+        "pct_transport_subway = B08301_013",
+        "pct_transport_rail = B08301_014",
+        "pct_transport_taxi = B08301_016",
+        "pct_transport_motorcycle = B08301_017",
+        "pct_transport_bicycle = B08301_018",
+        "pct_transport_walk = B08301_019",
+        "pct_transport_other = B08301_020",
+        "pct_transport_wfh = B08301_021",
+        
+        "pct_renting = B25008_003",
+        
+        "pct_housing_standalone = B25024_002",
+        "pct_housing_1_unit = B25024_003",
+        "pct_housing_2_units = B25024_004",
+        "pct_housing_3_to_4_units = B25024_005",
+        "pct_housing_5_to_9_units = B25024_006",
+        "pct_housing_10_to_19_units = B25024_007",
+        "pct_housing_20_to_49_units = B25024_008",
+        "pct_housing_gt_50_units = B25024_009",
+        "pct_housing_mobile_home = B25024_010",
+        "pct_housing_vehicle = B25024_011"
+      )
+    ),
+    global_args
+  )
 ) %>%
   mutate(
     # convert pct_* columns into actual percentages
@@ -186,12 +214,12 @@ get_nullable_column <- function(column_definition) {
   return(
     tryCatch(
       {
-        read_acs5year(
-          year = year,
-          states = c(state),
-          table_contents = c(column_definition),
-          summary_level = geometry,
-          show_progress = FALSE
+        do.call(
+          read_acs5year,
+          c(
+            list(table_contents = c(column_definition)),
+            global_args
+          )
         ) %>%
           select(GEOID, !!as.name(column_name))
       },
@@ -238,16 +266,18 @@ mutate_across_funs <- list()
 mutate_across_funs[[as.character(inflation_target_year)]] <-
   ~.*inflation_adjustments[year == year_, cpi_adjustment]
 
-currency_vars <- read_acs5year(
-  year = year,
-  states = c(state),
-  table_contents = c(
-    "med_household_income = B19013_001",
-    "med_family_income = B19113_001",
-    "med_property_value = B25077_001"
-  ),
-  summary_level = geometry,
-  show_progress = FALSE
+currency_vars <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        "med_household_income = B19013_001",
+        "med_family_income = B19113_001",
+        "med_property_value = B25077_001"
+      )
+    ),
+    global_args
+  )
 ) %>%
   mutate(across(starts_with("med_"), mutate_across_funs)) %>%
   select(
@@ -261,15 +291,17 @@ cat(" ok\n")
 
 cat("* Age Distribution...")
 
-age_dist <- read_acs5year(
-  year = year,
-  states = c(state),
-  table_contents = sapply(
-    c(3:25, 27:49), # 003-025: Male; 027-049: Female
-    function(x) sprintf("B01001_%03d", x)
-  ),
-  summary_level = geometry,
-  show_progress = FALSE
+age_dist <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = sapply(
+        c(3:25, 27:49), # 003-025: Male; 027-049: Female
+        function(x) sprintf("B01001_%03d", x)
+      )
+    ),
+    global_args
+  )
 ) %>%
   transmute(
     GEOID,
@@ -304,15 +336,17 @@ cat(" ok\n")
 
 cat("* Education distrubtion...")
 
-edu_dist <- read_acs5year(
-  year = year,
-  states = c(state),
-  table_contents = sapply(
-    c(4:83),
-    function(x) sprintf("B15001_%03d", x)
-  ),
-  summary_level = geometry,
-  show_progress = FALSE
+edu_dist <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = sapply(
+        c(4:83),
+        function(x) sprintf("B15001_%03d", x)
+      )
+    ),
+    global_args
+  )
 ) %>%
   transmute(
     GEOID,
@@ -347,12 +381,12 @@ cat(" ok\n")
 
 cat("* Gini index...")
 
-gini_index <- read_acs5year(
-  year = year,
-  states = c(state),
-  table_contents = "gini_index = B19083_001",
-  summary_level = geometry,
-  show_progress = FALSE
+gini_index <- do.call(
+  read_acs5year,
+  c(
+    table_contents = "gini_index = B19083_001",
+    global_args
+  )
 ) %>%
   select(
     GEOID,
@@ -366,18 +400,20 @@ cat(" ok\n")
 
 cat("* Ethnic fractionalization...")
 
-ethnic_fractionalization <- read_acs5year(
-  year = year,
-  states = c(state),
-  table_contents = c(
-    "race_total = B03002_001",
-    "non_hispanic_white = B03002_003",
-    "non_hispanic_black = B03002_004",
-    "non_hispanic_asian = B03002_006",
-    "hispanic = B03002_012"
-  ),
-  summary_level = geometry,
-  show_progress = FALSE
+ethnic_fractionalization <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        "race_total = B03002_001",
+        "non_hispanic_white = B03002_003",
+        "non_hispanic_black = B03002_004",
+        "non_hispanic_asian = B03002_006",
+        "hispanic = B03002_012"
+      )
+    ),
+    global_args
+  )
 ) %>%
   transmute(
     GEOID,
@@ -405,15 +441,17 @@ row <- b19001_cutoffs %>%
   head(1) %>% # there are some years with multiple rows, e.g. 2013 -> 2013 (39) and 2013 (38); TODO: fix
   as.list()
 
-ice_income <- read_acs5year(
-  year = year,
-  states = c(state),
-  table_contents = sapply(
-    c(1:17),
-    function(x) sprintf("B19001_%03d", x)
-  ),
-  summary_level = geometry,
-  show_progress = FALSE
+ice_income <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = sapply(
+        c(1:17),
+        function(x) sprintf("B19001_%03d", x)
+      )
+    ),
+    global_args
+  )
 ) %>%
   mutate(
     # total number of people measured
@@ -446,16 +484,18 @@ cat(" ok\n")
 
 cat("* Index of concentration at the extremes (race/ethnicity)...")
 
-ice_race_ethnicity <- read_acs5year(
-  year = year,
-  states = c(state),
-  table_contents = c(
-    "race_total = B03002_001",
-    "non_hispanic_white = B03002_003",
-    "non_hispanic_black = B03002_004"
-  ),
-  summary_level = geometry,
-  show_progress = FALSE
+ice_race_ethnicity <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        "race_total = B03002_001",
+        "non_hispanic_white = B03002_003",
+        "non_hispanic_black = B03002_004"
+      )
+    ),
+    global_args
+  )
 ) %>%
   transmute(
     GEOID,
