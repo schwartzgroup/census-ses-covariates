@@ -68,6 +68,10 @@ b19001_cutoffs <- read_excel("inputs/B19001_cutoffs.xlsx")
 # Don't run this section if you are working with a specific set of constants
 # from above
 
+states <- c("MA")
+years <- c(2009)
+geometries <- c("tract")
+
 total <- length(states) * length(years) * length(geometries)
 i <- 0
 
@@ -163,10 +167,63 @@ census_vars <- do.call(
         "pct_transport_bicycle = B08301_018",
         "pct_transport_walk = B08301_019",
         "pct_transport_other = B08301_020",
-        "pct_transport_wfh = B08301_021",
+        "pct_transport_wfh = B08301_021"
+      )
+    ),
+    global_args
+  )
+) %>%
+  mutate(
+    # convert pct_* columns into actual percentages
+    across(starts_with("pct_"), ~./population)
+  ) %>%
+  select(
+    # extra variables added by totalcensus
+    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat
+  )
+
+cat(" ok\n")
+
+# Housing variables -------------------------------------------------------
         
-        "pct_renting = B25008_003",
+cat("* Housing variables (all individuals in housing)...")
+
+housing_population <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        "n_in_housing = B25008_001",
         
+        # mutated into percentages later
+        "pct_renting = B25008_003"
+      )
+    ),
+    global_args
+  )
+) %>%
+  mutate(
+    # convert pct_* columns into actual percentages
+    across(starts_with("pct_"), ~./n_in_housing)
+  ) %>%
+  select(
+    # extra variables added by totalcensus
+    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat
+  )
+
+cat(" ok\n")
+
+
+cat("* Housing variables (all units)...")
+
+housing_all_units <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        "n_housing_units = B25024_001",
+        
+        # mutated into percentages later
         "pct_housing_standalone = B25024_002",
         "pct_housing_1_unit = B25024_003",
         "pct_housing_2_units = B25024_004",
@@ -184,7 +241,42 @@ census_vars <- do.call(
 ) %>%
   mutate(
     # convert pct_* columns into actual percentages
-    across(starts_with("pct_"), ~./population)
+    across(starts_with("pct_"), ~./n_housing_units)
+  ) %>%
+  select(
+    # extra variables added by totalcensus
+    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat
+  )
+
+cat(" ok\n")
+
+cat("* Housing variables (occupied units)...")
+
+housing_occupied_units <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        "n_occupied_units = B25040_001",
+        
+        # mutated into percentages later
+        "pct_heating_utility_gas = B25040_002",
+        "pct_heating_gas_tank = B25040_003",
+        "pct_heating_electricity = B25040_004",
+        "pct_heating_oil = B25040_005",
+        "pct_heating_coal = B25040_006",
+        "pct_heating_wood = B25040_007",
+        "pct_heating_solar = B25040_008",
+        "pct_heating_other = B25040_009",
+        "pct_heating_none = B25040_010"
+      )
+    ),
+    global_args
+  )
+) %>%
+  mutate(
+    # convert pct_* columns into actual percentages
+    across(starts_with("pct_"), ~./n_occupied_units)
   ) %>%
   select(
     # extra variables added by totalcensus
@@ -516,6 +608,9 @@ Reduce(
   function(x, y) left_join(x, y, by = "GEOID"),
   list(
     census_vars,
+    housing_population,
+    housing_all_units,
+    housing_occupied_units,
     nullable_census_vars,
     currency_vars,
     age_dist,
