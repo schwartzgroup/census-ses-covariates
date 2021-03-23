@@ -68,10 +68,6 @@ b19001_cutoffs <- read_excel("inputs/B19001_cutoffs.xlsx")
 # Don't run this section if you are working with a specific set of constants
 # from above
 
-states <- c("MA")
-years <- c(2009)
-geometries <- c("tract")
-
 total <- length(states) * length(years) * length(geometries)
 i <- 0
 
