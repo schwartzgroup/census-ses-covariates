@@ -606,13 +606,16 @@ ice_income <- do.call(
     )),
     
     # lower 20th pctile all except white nonhispanic (subtract white nonhisp from total)
-    income_lower_20th_pctile_not_white_nonhisp = income_lower_20th_pctile - rowSums(select(
+    income_lower_20th_pctile_white_nonhisp = rowSums(select(
         .,
         sapply(
           c(row$acs_total + 1:row$acs_20th_upper),
-          function(x) sprintf("%s_%03d", row$acs_table, x)
+          function(x) sprintf("%sH_%03d", row$acs_table, x)
         ),
     )),
+    income_lower_20th_pctile_not_white_nonhisp = (
+      income_lower_20th_pctile - income_lower_20th_pctile_white_nonhisp
+    )
     
   ) %>%
   transmute(
