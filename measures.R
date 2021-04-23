@@ -22,6 +22,9 @@ years <- c(2009:2019)
 # temporary workaround: set states <- c("US"), geometries <- c("zip code")
 geometries <- c("county", "tract", "block group")
 
+#states <- c("US")
+#geometries <- c("zip code")
+
 # Originally located in my home directory due to the very long download not
 # playing well with the stability of qnap3; later moved to qnap3. See the setup
 # section below.
@@ -67,10 +70,6 @@ b19001_cutoffs <- read_excel("inputs/B19001_cutoffs.xlsx")
 # Start loops ---------------------------------------------------------------
 # Don't run this section if you are working with a specific set of constants
 # from above
-
-states <- c("MA")
-years <- c(2009)
-geometries <- c("tract")
 
 total <- length(states) * length(years) * length(geometries)
 i <- 0
@@ -522,8 +521,6 @@ cat(" ok\n")
 # Index of Concentration at the Extremes (ICE) ----------------------------
 # Krieger, N., Kim, R., Feldman, J., & Waterman, P. D. (2018). Using the Index of Concentration at the Extremes at multiple geographical levels to monitor health inequities in an era of growing spatial social polarization: Massachusetts, USA (2010–14). International Journal of Epidemiology, 47(3), 788–819. https://doi.org/10.1093/ije/dyy004
 
-cat("* Index of concentration at the extremes (income)...")
-
 # adjustments found with the BLS CPI inflation calculator:
 # https://www.bls.gov/data/inflation_calculator.htm
 # comparing $1,000 in december 2019 to december 20xx then dividing by $1,000
@@ -533,13 +530,20 @@ row <- b19001_cutoffs %>%
   head(1) %>% # there are some years with multiple rows, e.g. 2013 -> 2013 (39) and 2013 (38); TODO: fix
   as.list()
 
+cat("* Index of concentration at the extremes (income and race/ethnicity)...")
+
 ice_income <- do.call(
   read_acs5year,
   c(
     list(
       table_contents = sapply(
-        c(1:17),
-        function(x) sprintf("B19001_%03d", x)
+        c("", "A", "B", "H"),
+        function(race_eth) {
+          sapply(
+            c(1:17),
+            function(x) sprintf("B19001%s_%03d", race_eth, x)
+          )
+        }
       )
     ),
     global_args
@@ -549,7 +553,7 @@ ice_income <- do.call(
     # total number of people measured
     income_total = get(sprintf("%s_%03d", row$acs_table, row$acs_total)),
     
-    # sum of lower 20th percentile columns
+    # lower 20th pctile
     income_lower_20th_pctile = rowSums(select(
         .,
         sapply(
@@ -558,7 +562,7 @@ ice_income <- do.call(
         ),
     )),
     
-    # sum of upper 20th percentile columns
+    # upper 20th pctile
     income_upper_20th_pctile = rowSums(select(
         .,
         sapply(
@@ -566,10 +570,55 @@ ice_income <- do.call(
           function(x) sprintf("%s_%03d", row$acs_table, x)
         ),
     )),
+    
+    # upper 20th pctile white
+    income_upper_20th_pctile_white = rowSums(select(
+        .,
+        sapply(
+          c(row$acs_80th_lower:17),
+          function(x) sprintf("%sA_%03d", row$acs_table, x)
+        ),
+    )),
+    
+    # lower 20th pctile black
+    income_lower_20th_pctile_black = rowSums(select(
+        .,
+        sapply(
+          c(row$acs_total + 1:row$acs_20th_upper),
+          function(x) sprintf("%sB_%03d", row$acs_table, x)
+        ),
+    )),
+    
+    # upper 20th pctile white nonhispanic
+    income_upper_20th_pctile_white_nonhisp = rowSums(select(
+        .,
+        sapply(
+          c(row$acs_80th_lower:17),
+          function(x) sprintf("%sH_%03d", row$acs_table, x)
+        ),
+    )),
+    
+    # lower 20th pctile all except white nonhispanic (subtract white nonhisp from total)
+    income_lower_20th_pctile_not_white_nonhisp = income_lower_20th_pctile - rowSums(select(
+        .,
+        sapply(
+          c(row$acs_total + 1:row$acs_20th_upper),
+          function(x) sprintf("%s_%03d", row$acs_table, x)
+        ),
+    )),
+    
   ) %>%
   transmute(
     GEOID,
-    ice_income = (income_upper_20th_pctile - income_lower_20th_pctile) / income_total
+    ice_income = (
+      income_upper_20th_pctile - income_lower_20th_pctile
+    ) / income_total,
+    ice_income_white_v_black = (
+      income_upper_20th_pctile_white - income_lower_20th_pctile_black
+    ) / income_total,
+    ice_income_white_nonhisp_v_other = (
+      income_upper_20th_pctile_white_nonhisp - income_lower_20th_pctile_not_white_nonhisp
+    ) / income_total
   )
 
 cat(" ok\n")
@@ -595,6 +644,7 @@ ice_race_ethnicity <- do.call(
   )
 
 cat(" ok\n")
+
 
 # Join all and write out -----------------------------------------------
 
