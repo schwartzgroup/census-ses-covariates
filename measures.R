@@ -124,12 +124,13 @@ census_vars <- do.call(
         
         # temporary variables, to be used to calculate others and then removed
         # later
+        "public_assistance_denom = B19057_001",
+        "public_assistance = B19057_002",
         
         # these variables are actually population counts but will get mutated to
         # percentages in the `mutate_at() below``
         "pct_female = B01001_026",
         "pct_poverty = B17001_002",
-        "pct_public_assistance = B19057_003",
         "pct_white = B02001_002",
         "pct_black = B02001_003",
         "pct_asian = B02001_005",
@@ -174,11 +175,17 @@ census_vars <- do.call(
 ) %>%
   mutate(
     # convert pct_* columns into actual percentages
-    across(starts_with("pct_"), ~./population)
+    across(starts_with("pct_"), ~./population),
+    
+    # manual percentages
+    pct_public_assistance = public_assistance / public_assistance_denom
   ) %>%
   select(
     # extra variables added by totalcensus
-    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat
+    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat,
+    
+    # temporary variables
+    -public_assistance, -public_assistance_denom
   )
 
 cat(" ok\n")
