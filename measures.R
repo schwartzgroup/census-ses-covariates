@@ -291,6 +291,72 @@ housing_occupied_units <- do.call(
 
 cat(" ok\n")
 
+# Employment --------------------------------------------------------------
+
+cat("* Employment...")
+
+if (global_args$year %in% c(2009, 2010)) {
+  # using long formulation because the abbreviated versions aren't available
+  # in older versions of the ACS (2009 and 2010)
+  cat(" using long formulation...")
+  employment <- do.call(
+    read_acs5year,
+    c(
+      list(
+        table_contents = sapply(
+          c(1:173),
+          function(x) sprintf("B23001_%03d", x)
+        )
+      ),
+      global_args
+    )
+  ) %>%
+    mutate(
+      labor_force = (
+        B23001_004 + B23001_011 + B23001_018 + B23001_025 +
+        B23001_032 + B23001_039 + B23001_046 + B23001_053 +
+        B23001_060 + B23001_067 + B23001_074 + B23001_079 +
+        B23001_084 + B23001_090 + B23001_097 + B23001_104 +
+        B23001_111 + B23001_118 + B23001_125 + B23001_132 +
+        B23001_139 + B23001_146 + B23001_153 + B23001_160 +
+        B23001_165 + B23001_170
+      ),
+      unemployed = (
+        B23001_008 + B23001_015 + B23001_022 + B23001_029 +
+        B23001_036 + B23001_043 + B23001_050 + B23001_057 +
+        B23001_064 + B23001_071 + B23001_076 + B23001_081 +
+        B23001_086 + B23001_094 + B23001_101 + B23001_108 +
+        B23001_115 + B23001_122 + B23001_129 + B23001_136 +
+        B23001_143 + B23001_150 + B23001_157 + B23001_162 +
+        B23001_167 + B23001_172
+      )
+    ) %>%
+    transmute(
+      GEOID,
+      pct_unemployed = unemployed / labor_force
+    )
+} else {
+  # in 2011, aggregate measures were added in as B23025
+  employment <- do.call(
+    read_acs5year,
+    c(
+      list(
+        table_contents = c(
+          "labor_force = B23025_002",
+          "unemployed = B23025_005"
+        )
+      ),
+      global_args
+    )
+  ) %>%
+    transmute(
+      GEOID,
+      pct_unemployed = unemployed / labor_force
+    )
+}
+
+cat(" ok\n")
+
 # Nullable plain Census variables ------------------------------------
 # These variables may not exist in every version of the census
 
@@ -332,24 +398,25 @@ get_nullable_column <- function(column_definition) {
   )
 }
 
-nullable_census_vars <- Reduce(
-  function(x, y) x[y, on = "GEOID"],
-  lapply(
-    nullable_column_definitions,
-    get_nullable_column
-  )
-) %>%
-  mutate(
-    # convert pct_* columns into actual percentages
-    across(starts_with("pct_"), ~./population),
-    
-    # manual calculations
-    pct_elligible_unemployed = unemployed / labor_force
-  ) %>%
-  select(
-    # drop temporary columns
-    -unemployed, -labor_force
-  )
+# deprecated for now - see Employment section
+#nullable_census_vars <- Reduce(
+#  function(x, y) x[y, on = "GEOID"],
+#  lapply(
+#    nullable_column_definitions,
+#    get_nullable_column
+#  )
+#) %>%
+#  mutate(
+#    # convert pct_* columns into actual percentages
+#    across(starts_with("pct_"), ~./population),
+#    
+#    # manual calculations
+#    pct_elligible_unemployed = unemployed / labor_force
+#  ) %>%
+#  select(
+#    # drop temporary columns
+#    -unemployed, -labor_force
+#  )
 
 cat(" ok\n")
 
@@ -657,9 +724,13 @@ cat(" ok\n")
 
 # Townsend Index ----------------------------------------------------------
 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4053913/
+#
 # "Furthermore, a high Townsend Index is indicative of high material
 # deprivation"; negative values are in rich areas
 
+cat("* Townsend index...")
+
+# employment info is joined from the employment table from earlier
 townsend_index <- do.call(
   read_acs5year,
   c(
@@ -668,7 +739,7 @@ townsend_index <- do.call(
         "households = B11001_001",
         "occupied_units = B25009_001",
         "units_owner_occupied = B25009_002",
-        "persons_unemployed = B23025_005",
+        #"persons_unemployed = B23025_005",
         "households_no_vehicle = B08201_002",
         
         # occupancy: > 1 occupants per room
@@ -679,6 +750,7 @@ townsend_index <- do.call(
     global_args
   )
 ) %>%
+  left_join(employment, by = "GEOID") %>%
   mutate(
     # denominators chosen according to the universe of the respective measure
     # e.g. for vehicles: `Universe: Universe: Households`
@@ -697,8 +769,7 @@ townsend_index <- do.call(
       (households - units_owner_occupied) / occupied_units
     ),
     
-    pct_unemployment = persons_unemployed / population,
-    log_pct_unemployment = log(pct_unemployment + 1),
+    log_pct_unemployed = log(pct_unemployed + 1),
   ) %>%
   transmute(
     GEOID,
@@ -706,9 +777,11 @@ townsend_index <- do.call(
       scale(pct_households_no_vehicle) +
       scale(log_pct_overcrowded) +
       scale(pct_units_not_owner_occupied) +
-      scale(log_pct_unemployment)
+      scale(log_pct_unemployed)
     )
   )
+
+cat(" ok\n")
 
 # Join all and write out -----------------------------------------------
 
@@ -725,14 +798,16 @@ Reduce(
     housing_population,
     housing_all_units,
     housing_occupied_units,
-    nullable_census_vars,
+    employment,
+    #nullable_census_vars, # deprecated by employment
     currency_vars,
     age_dist,
     edu_dist,
     gini_index,
     ethnic_fractionalization,
     ice_income,
-    ice_race_ethnicity
+    ice_race_ethnicity,
+    townsend_index
   )
 ) %>%
   mutate(GEOID = as.character(GEOID)) %>% # disable scientific notation
