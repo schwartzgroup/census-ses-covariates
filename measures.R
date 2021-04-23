@@ -655,6 +655,60 @@ ice_race_ethnicity <- do.call(
 
 cat(" ok\n")
 
+# Townsend Index ----------------------------------------------------------
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4053913/
+# "Furthermore, a high Townsend Index is indicative of high material
+# deprivation"; negative values are in rich areas
+
+townsend_index <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        "households = B11001_001",
+        "occupied_units = B25009_001",
+        "units_owner_occupied = B25009_002",
+        "persons_unemployed = B23025_005",
+        "households_no_vehicle = B08201_002",
+        
+        # occupancy: > 1 occupants per room
+        "B25014_005", "B25014_006", "B25014_007",
+        "B25014_011", "B25014_012", "B25014_013"
+      )
+    ),
+    global_args
+  )
+) %>%
+  mutate(
+    # denominators chosen according to the universe of the respective measure
+    # e.g. for vehicles: `Universe: Universe: Households`
+    # e.g. for occupancy: `Universe: Universe: Occupied housing units`
+    
+    pct_households_no_vehicle = households_no_vehicle / households,
+    
+    pct_overcrowded = (
+      B25014_005 + B25014_006 + B25014_007 + B25014_011 + B25014_012 + B25014_013
+    ),
+    log_pct_overcrowded = log(pct_overcrowded + 1),
+    
+    pct_units_not_owner_occupied = ifelse(
+      occupied_units == 0,
+      0,
+      (households - units_owner_occupied) / occupied_units
+    ),
+    
+    pct_unemployment = persons_unemployed / population,
+    log_pct_unemployment = log(pct_unemployment + 1),
+  ) %>%
+  transmute(
+    GEOID,
+    townsend_index = (
+      scale(pct_households_no_vehicle) +
+      scale(log_pct_overcrowded) +
+      scale(pct_units_not_owner_occupied) +
+      scale(log_pct_unemployment)
+    )
+  )
 
 # Join all and write out -----------------------------------------------
 

@@ -27,6 +27,8 @@ Included indices:
 * Ethnic fractionalization of black, white, asian, and hispanic populations (Alesina, Devleeschauwer, Easterly, Kurlat, & Wacziarg, 2003)
 * Index of Concentration at the Extremes for income and race/ethnicity (Krieger, Kim, Feldman, & Waterman, 2018)
     * Cutoffs for percentiles were chosen based on inflation-adjusted 2019 dollars; see [B19001_cutoffs.xlsx](inputs/B19001_cutoffs.xlsx)
+* Townsend index (Townsend, Phillimore, & Beattie, 1988)
+    * Using the formulation seen in Rice, Jiang, Wilson, Burwell-Naney, Samantapudi, & Zhang, 2014
 
 About 600 GB of space is required to run this script. The use of `totalcensus` rather than `tidycensus` was motivated by a desire to both relieve stress on the Census servers and allow for quick iterative updates. Support for `tidycensus` may be added in the future.
 
@@ -72,3 +74,5 @@ A second goal of this module is to decouple the scripts from the `totalcensus` p
 1. Alesina, A., Devleeschauwer, A., Easterly, W., Kurlat, S., & Wacziarg, R. (2003). Fractionalization. Journal of Economic Growth, 8(2), 155–194. https://doi.org/10.1023/A:1024471506938
 2. Gini, Corrado (1912). Variabilità e mutabilità. Reprinted in Pizetti, E.; Salvemini, T., eds. (1955). Memorie di metodologica statistica. Rome: Libreria Eredi Virgilio Veschi.
 3. Krieger, N., Kim, R., Feldman, J., & Waterman, P. D. (2018). Using the Index of Concentration at the Extremes at multiple geographical levels to monitor health inequities in an era of growing spatial social polarization: Massachusetts, USA (2010–14). International Journal of Epidemiology, 47(3), 788–819. https://doi.org/10.1093/ije/dyy004
+4. Townsend P., Phillimore. P., Beattie A. Health and deprivation: Inequality and the North. Croom Helm, London: 1988. p. 221.
+5. Rice, L. J., Jiang, C., Wilson, S. M., Burwell-Naney, K., Samantapudi, A., & Zhang, H. (2014). Use of segregation indices, Townsend Index, and air toxics data to assess lifetime cancer risk disparities in metropolitan Charleston, South Carolina, USA. International journal of environmental research and public health, 11(5), 5510–5526. https://doi.org/10.3390/ijerph110505510
