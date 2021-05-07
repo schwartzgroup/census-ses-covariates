@@ -111,6 +111,17 @@ for (state in states) {
         )
       }
 
+# Quick override for debugging --------------------------------------------
+
+if (FALSE) {
+    global_args <- list(
+      year = 2019,
+      states = c("MA"),
+      summary_level = "tract",
+      show_progress = FALSE
+    )
+}
+
 # Plain Census values -----------------------------------------------------
 
 cat("* Plain variables...")
@@ -141,6 +152,7 @@ census_vars <- do.call(
         "pct_non_hispanic_black = B03002_004",
         "pct_non_hispanic_asian = B03002_006",
         "pct_hispanic = B03002_012",
+        "pct_foreign_born = B05006_001",
         # TODO: pct_two_or_more_races
         
         "pct_travel_lt_5_min = B08303_002",
