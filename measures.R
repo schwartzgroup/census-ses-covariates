@@ -28,9 +28,9 @@ geometries <- c("county", "tract", "block group")
 # Originally located in my home directory due to the very long download not
 # playing well with the stability of qnap3; later moved to qnap3. See the setup
 # section below.
-#totalcensus_path <- "/media/qnap3/Covariates/totalcensus/"
+totalcensus_path <- "/media/qnap4/Covariates/totalcensus/"
 #totalcensus_path <- "/home/edgar/totalcensus/"
-totalcensus_path <- file.path("external", "totalcensus")
+#totalcensus_path <- file.path("external", "totalcensus")
 
 # Setup --------------------------------------------------------------------
 
@@ -115,169 +115,152 @@ for (state in states) {
 
 if (FALSE) {
     global_args <- list(
+      year = 2009,
+      states = c("MA"),
+      summary_level = "tract",
+      show_progress = FALSE
+    )
+    global_args <- list(
       year = 2019,
       states = c("MA"),
       summary_level = "tract",
       show_progress = FALSE
     )
+    global_args <- list(
+      year = 2019,
+      states = "US",
+      geo_headers = "ZCTA5",
+      summary_level = "860",
+      show_progress = FALSE
+    )
+    global_args <- list(
+      year = 2015,
+      states = "US",
+      geo_headers = "ZCTA5",
+      summary_level = "860",
+      show_progress = FALSE
+    )
+    global_args <- list(
+      year = 2010,
+      states = "US",
+      geo_headers = "ZCTA5",
+      summary_level = "860",
+      show_progress = FALSE
+    )
+    
+    do.call(
+      read_acs5year,
+      c(
+        list(
+          table_contents = c(
+            "population = B01001_001", # already included by totalcensus by default
+            "pct_female = B01001_026",
+            "pct_poverty = B17001_002",
+            "pct_white = B02001_002",
+            "pct_black = B02001_003",
+            "pct_asian = B02001_005"
+          )
+        ),
+        global_args
+      )
+    )[]
+
 }
 
-# Plain Census values -----------------------------------------------------
+# Universe: Total population ----------------------------------------------
 
-cat("* Plain variables...")
+cat("* Total population...")
 
-census_vars <- do.call(
+total_population <- do.call(
   read_acs5year,
   c(
     list(
       table_contents = c(
-        #"population = B01001_001", # already included by totalcensus by default
-        
-        # temporary variables, to be used to calculate others and then removed
-        # later
-        "public_assistance_denom = B19057_001",
-        "public_assistance = B19057_002",
-        
-        # these variables are actually population counts but will get mutated to
-        # percentages in the `mutate_at() below``
         "pct_female = B01001_026",
         "pct_poverty = B17001_002",
         "pct_white = B02001_002",
         "pct_black = B02001_003",
+        "pct_native = B02001_004",
         "pct_asian = B02001_005",
+        "pct_two_or_more_races = B02001_008",
         "pct_hispanic_white = B03002_013",
         "pct_hispanic_black = B03002_014",
+        "pct_hispanic_native = B03002_015",
         "pct_hispanic_asian = B03002_016",
+        "pct_hispanic_two_or_more_races = B03002_019",
         "pct_non_hispanic_white = B03002_003",
         "pct_non_hispanic_black = B03002_004",
+        "pct_non_hispanic_native = B03002_005",
         "pct_non_hispanic_asian = B03002_006",
+        "pct_non_hispanic_two_or_more_races = B03002_009",
         "pct_hispanic = B03002_012",
         "pct_foreign_born = B05006_001",
-        # TODO: pct_two_or_more_races
         
-        "pct_travel_lt_5_min = B08303_002",
-        "pct_travel_5_to_9_min = B08303_003",
-        "pct_travel_10_to_14_min = B08303_004",
-        "pct_travel_15_to_19_min = B08303_005",
-        "pct_travel_20_to_24_min = B08303_006",
-        "pct_travel_25_to_29_min = B08303_007",
-        "pct_travel_30_to_34_min = B08303_008",
-        "pct_travel_35_to_39_min = B08303_009",
-        "pct_travel_40_to_44_min = B08303_010",
-        "pct_travel_45_to_59_min = B08303_011",
-        "pct_travel_60_to_89_min = B08303_012",
-        "pct_travel_gt_90_min = B08303_013",
-        
-        "pct_transport_auto = B08301_002",
-        "pct_transport_public_transit = B08301_010",
-        "pct_transport_bus = B08301_011",
-        "pct_transport_streetcar = B08301_012",
-        "pct_transport_subway = B08301_013",
-        "pct_transport_rail = B08301_014",
-        "pct_transport_taxi = B08301_016",
-        "pct_transport_motorcycle = B08301_017",
-        "pct_transport_bicycle = B08301_018",
-        "pct_transport_walk = B08301_019",
-        "pct_transport_other = B08301_020",
-        "pct_transport_wfh = B08301_021"
+        # Compatibility with 1990 Decennial Census
+        "temp_pacific_islander = B02001_006",
+        "temp_hispanic_pacific_islander = B03002_017",
+        "temp_non_hispanic_pacific_islander = B03002_007"
       )
     ),
     global_args
   )
 ) %>%
   mutate(
-    # convert pct_* columns into actual percentages
-    across(starts_with("pct_"), ~./population),
+    pct_asian_pacific_islander = (pct_asian + temp_pacific_islander) / population,
+    pct_hispanic_asian_pacific_islander = (pct_hispanic_asian + temp_hispanic_pacific_islander) / population,
+    pct_non_hispanic_asian_pacific_islander = (pct_non_hispanic_asian + temp_non_hispanic_pacific_islander) / population,
     
-    # manual percentages
-    pct_public_assistance = public_assistance / public_assistance_denom
+    across(starts_with("pct_"), ~./population),
   ) %>%
   select(
     # extra variables added by totalcensus
     -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat,
     
-    # temporary variables
-    -public_assistance, -public_assistance_denom
+    -temp_pacific_islander, -temp_hispanic_pacific_islander, -temp_non_hispanic_pacific_islander
   )
 
 cat(" ok\n")
 
-# Housing variables -------------------------------------------------------
-        
-cat("* Housing variables (all individuals in housing)...")
+# Universe: Households ----------------------------------------------------
 
-housing_population <- do.call(
+cat("* Household variables")
+
+households <- do.call(
   read_acs5year,
   c(
     list(
       table_contents = c(
-        "n_in_housing = B25008_001",
-        
-        # mutated into percentages later
-        "pct_renting = B25008_003"
+        "n_households = B11001_001",
+        "mean_household_size = B25010_001",
+        "pct_households_single_father = B11001_005",
+        "pct_households_single_mother = B11001_006",
+        "pct_public_assistance = B19057_002"
       )
     ),
     global_args
   )
 ) %>%
   mutate(
-    # convert pct_* columns into actual percentages
-    across(starts_with("pct_"), ~./n_in_housing)
+    across(starts_with("pct_"), ~./n_households)
   ) %>%
   select(
     # extra variables added by totalcensus
-    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat
+    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat, -population
   )
 
 cat(" ok\n")
 
+# Universe: Occupied housing units ----------------------------------------
+        
+cat("* Occupied housing units...")
 
-cat("* Housing variables (all units)...")
-
-housing_all_units <- do.call(
+occupied_housing_units <- do.call(
   read_acs5year,
   c(
     list(
       table_contents = c(
-        "n_housing_units = B25024_001",
-        
-        # mutated into percentages later
-        "pct_housing_standalone = B25024_002",
-        "pct_housing_1_unit = B25024_003",
-        "pct_housing_2_units = B25024_004",
-        "pct_housing_3_to_4_units = B25024_005",
-        "pct_housing_5_to_9_units = B25024_006",
-        "pct_housing_10_to_19_units = B25024_007",
-        "pct_housing_20_to_49_units = B25024_008",
-        "pct_housing_gt_50_units = B25024_009",
-        "pct_housing_mobile_home = B25024_010",
-        "pct_housing_vehicle = B25024_011"
-      )
-    ),
-    global_args
-  )
-) %>%
-  mutate(
-    # convert pct_* columns into actual percentages
-    across(starts_with("pct_"), ~./n_housing_units)
-  ) %>%
-  select(
-    # extra variables added by totalcensus
-    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat
-  )
-
-cat(" ok\n")
-
-cat("* Housing variables (occupied units)...")
-
-housing_occupied_units <- do.call(
-  read_acs5year,
-  c(
-    list(
-      table_contents = c(
-        "n_occupied_units = B25040_001",
-        
-        # mutated into percentages later
+        "n_occupied_housing_units = B25003_001",
+        "pct_renting = B25003_003",
         "pct_heating_utility_gas = B25040_002",
         "pct_heating_gas_tank = B25040_003",
         "pct_heating_electricity = B25040_004",
@@ -293,19 +276,63 @@ housing_occupied_units <- do.call(
   )
 ) %>%
   mutate(
-    # convert pct_* columns into actual percentages
-    across(starts_with("pct_"), ~./n_occupied_units)
+    across(starts_with("pct_"), ~./n_occupied_housing_units)
   ) %>%
   select(
     # extra variables added by totalcensus
-    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat
+    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat, -population
   )
 
 cat(" ok\n")
 
-# Employment --------------------------------------------------------------
+# Universe: Housing units -------------------------------------------------
 
-cat("* Employment...")
+cat("* Housing units...")
+
+housing_units <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        "n_housing_units = B25024_001",
+        "pct_housing_standalone = B25024_002",
+        "pct_housing_1_unit = B25024_003",
+        "pct_housing_2_units = B25024_004",
+        "pct_housing_3_to_4_units = B25024_005",
+        "pct_housing_5_to_9_units = B25024_006",
+        "pct_housing_10_to_19_units = B25024_007",
+        "pct_housing_20_to_49_units = B25024_008",
+        "pct_housing_gt_50_units = B25024_009",
+        "pct_housing_mobile_home = B25024_010",
+        "pct_housing_vehicle = B25024_011",
+        "pct_built_2014_onwards = B25034_002",
+        "pct_built_2010_to_1949 = B25034_003",
+        "pct_built_2000_to_1949 = B25034_004",
+        "pct_built_1990_to_1949 = B25034_005",
+        "pct_built_1980_to_1949 = B25034_006",
+        "pct_built_1970_to_1949 = B25034_007",
+        "pct_built_1960_to_1949 = B25034_008",
+        "pct_built_1950_to_1949 = B25034_009",
+        "pct_built_1940_to_1949 = B25034_010",
+        "med_year_built = B25035_001"
+      )
+    ),
+    global_args
+  )
+) %>%
+  mutate(
+    across(starts_with("pct_"), ~./n_housing_units)
+  ) %>%
+  select(
+    # extra variables added by totalcensus
+    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat, -population
+  )
+
+cat(" ok\n")
+
+# Universe: Population 16 years and over (employment) ---------------------
+
+cat("* Population 16 years and over...")
 
 if (global_args$year %in% c(2009, 2010)) {
   # using long formulation because the abbreviated versions aren't available
@@ -345,6 +372,7 @@ if (global_args$year %in% c(2009, 2010)) {
     ) %>%
     transmute(
       GEOID,
+      labor_force,
       pct_unemployed = unemployed / labor_force
     )
 } else {
@@ -363,74 +391,193 @@ if (global_args$year %in% c(2009, 2010)) {
   ) %>%
     transmute(
       GEOID,
+      labor_force,
       pct_unemployed = unemployed / labor_force
     )
 }
 
 cat(" ok\n")
 
-# Nullable plain Census variables ------------------------------------
-# These variables may not exist in every version of the census
+# Universe: Population 18 years and over (education) ---------------------
 
-cat("* Nullable variables...")
+cat("* Population 18 years and over...")
 
-nullable_column_definitions <- c(
-  "labor_force = B23025_002",
-  "unemployed = B23025_005"
-)
-
-# we are assuming that census_vars ran correctly and can use its GEOID column
-# here to build the nullable variables table
-geoids <- census_vars[,GEOID]
-
-# if a census table exists, return the column as defined by the `totalcensus`
-# column definition; otherwise, return it filled with NA
-get_nullable_column <- function(column_definition) {
-  column_name <- str_extract(column_definition, "[^ =]+")
-  return(
-    tryCatch(
-      {
-        do.call(
-          read_acs5year,
-          c(
-            list(table_contents = c(column_definition)),
-            global_args
-          )
-        ) %>%
-          select(GEOID, !!as.name(column_name))
-      },
-      error = function(x) {
-        return(
-          census_vars %>%
-            select(GEOID) %>%
-            mutate(!!as.name(column_name) := NA)
-        )
-      }
-    )
+population_18_years_and_over<- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = sapply(
+        c(1:83),
+        function(x) sprintf("B15001_%03d", x)
+      )
+    ),
+    global_args
   )
-}
-
-# deprecated for now - see Employment section
-#nullable_census_vars <- Reduce(
-#  function(x, y) x[y, on = "GEOID"],
-#  lapply(
-#    nullable_column_definitions,
-#    get_nullable_column
-#  )
-#) %>%
-#  mutate(
-#    # convert pct_* columns into actual percentages
-#    across(starts_with("pct_"), ~./population),
-#    
-#    # manual calculations
-#    pct_elligible_unemployed = unemployed / labor_force
-#  ) %>%
-#  select(
-#    # drop temporary columns
-#    -unemployed, -labor_force
-#  )
+) %>%
+  transmute(
+    GEOID,
+    pct_edu_lt_9th_grade = (
+      B15001_004 + B15001_012 + B15001_020 + B15001_028 + B15001_036 + B15001_045+ B15001_053 + B15001_061 + B15001_069 + B15001_077
+    ) / B15001_001,
+    pct_edu_9th_to_12th_grade = (
+      B15001_005 + B15001_013 + B15001_021 + B15001_029 + B15001_037 + B15001_046 + B15001_054 + B15001_062 + B15001_070 + B15001_078
+    ) / B15001_001,
+    pct_edu_high_school = (
+      B15001_006 + B15001_014 + B15001_022 + B15001_030 + B15001_038 + B15001_047 + B15001_055 + B15001_063 + B15001_071 + B15001_079
+    ) / B15001_001,
+    pct_edu_some_college = (
+      B15001_007 + B15001_015 + B15001_023 + B15001_031 + B15001_039 + B15001_048 + B15001_056 + B15001_064 + B15001_072 + B15001_080
+    ) / B15001_001,
+    pct_edu_associate = (
+      B15001_008 + B15001_016 + B15001_024 + B15001_032 + B15001_040 + B15001_049 + B15001_057 + B15001_065 + B15001_073 + B15001_081
+    ) / B15001_001,
+    pct_edu_bachelors = (
+      B15001_009 + B15001_017 + B15001_025 + B15001_033 + B15001_041 + B15001_050 + B15001_058 + B15001_066 + B15001_074 + B15001_082
+    ) / B15001_001,
+    pct_edu_graduate_or_professional = (
+      B15001_010 + B15001_018 + B15001_026 + B15001_034 + B15001_042 + B15001_051 + B15001_059 + B15001_067 + B15001_075 + B15001_083
+    ) / B15001_001,
+  )
 
 cat(" ok\n")
+
+# Universe: Workers 16 years and over -------------------------------------
+
+cat("* Workers 16 years and over...")
+
+workers_16_years_and_over <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        "n_workers_16_years_and_over = B08301_001",
+        "pct_transport_auto = B08301_002",
+        "pct_transport_public_transit = B08301_010",
+        "pct_transport_bus = B08301_011",
+        "pct_transport_streetcar = B08301_012",
+        "pct_transport_subway = B08301_013",
+        "pct_transport_rail = B08301_014",
+        "pct_transport_taxi = B08301_016",
+        "pct_transport_motorcycle = B08301_017",
+        "pct_transport_bicycle = B08301_018",
+        "pct_transport_walk = B08301_019",
+        "pct_transport_other = B08301_020",
+        "pct_transport_wfh = B08301_021"
+      )
+    ),
+    global_args
+  )
+) %>%
+  mutate(
+    # convert pct_* columns into actual percentages
+    across(starts_with("pct_"), ~./n_workers_16_years_and_over),
+  ) %>%
+  select(
+    # extra variables added by totalcensus
+    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat, -population
+  )
+
+cat(" ok\n")
+
+# Universe: Workers 16 years and over who did not work at home ------------
+
+cat("* Workers 16 years and over who did not work at home...")
+
+workers_16_years_and_over_not_wfh <- do.call(
+  read_acs5year,
+  c(
+    list(
+      table_contents = c(
+        "n_workers_16_years_and_over_not_wfh = B08303_001",
+        "pct_travel_lt_5_min = B08303_002",
+        "pct_travel_5_to_9_min = B08303_003",
+        "pct_travel_10_to_14_min = B08303_004",
+        "pct_travel_15_to_19_min = B08303_005",
+        "pct_travel_20_to_24_min = B08303_006",
+        "pct_travel_25_to_29_min = B08303_007",
+        "pct_travel_30_to_34_min = B08303_008",
+        "pct_travel_35_to_39_min = B08303_009",
+        "pct_travel_40_to_44_min = B08303_010",
+        "pct_travel_45_to_59_min = B08303_011",
+        "pct_travel_60_to_89_min = B08303_012",
+        "pct_travel_gt_90_min = B08303_013"
+      )
+    ),
+    global_args
+  )
+) %>%
+  mutate(
+    across(starts_with("pct_"), ~./n_workers_16_years_and_over_not_wfh),
+  ) %>%
+  select(
+    # extra variables added by totalcensus
+    -NAME, -GEOCOMP, -SUMLEV, -state, -STUSAB, -lon, -lat, -population
+  )
+
+cat(" ok\n")
+
+# Nullable plain Census variables (deprecated) -----------------------
+# These variables may not exist in every version of the census
+
+# cat("* Nullable variables...")
+# 
+# nullable_column_definitions <- c(
+#   "labor_force = B23025_002",
+#   "unemployed = B23025_005",
+#   "houses_built_before_1939 = B25034_011" # TODO: move this to the household variables
+# )
+# 
+# # we are assuming that census_vars ran correctly and can use its GEOID column
+# # here to build the nullable variables table
+# geoids <- census_vars[,GEOID]
+# 
+# # if a census table exists, return the column as defined by the `totalcensus`
+# # column definition; otherwise, return it filled with NA
+# get_nullable_column <- function(column_definition) {
+#   column_name <- str_extract(column_definition, "[^ =]+")
+#   return(
+#     tryCatch(
+#       {
+#         do.call(
+#           read_acs5year,
+#           c(
+#             list(table_contents = c(column_definition)),
+#             global_args
+#           )
+#         ) %>%
+#           select(GEOID, !!as.name(column_name))
+#       },
+#       error = function(x) {
+#         return(
+#           census_vars %>%
+#             select(GEOID) %>%
+#             mutate(!!as.name(column_name) := NA)
+#         )
+#       }
+#     )
+#   )
+# }
+# 
+# nullable_census_vars <- Reduce(
+#   function(x, y) x[y, on = "GEOID"],
+#   lapply(
+#     nullable_column_definitions,
+#     get_nullable_column
+#   )
+# ) %>%
+#   mutate(
+#     # convert pct_* columns into actual percentages
+#     across(starts_with("pct_"), ~./population),
+#     
+#     # manual calculations
+#     pct_elligible_unemployed = unemployed / labor_force
+#   ) %>%
+#   select(
+#     # drop temporary columns
+#     -unemployed, -labor_force
+#   )
+# 
+# cat(" ok\n")
 
 # Currency-based variables ------------------------------------------------
 # These need to be inflation-adjusted
@@ -501,55 +648,12 @@ age_dist <- do.call(
     pct_age_62_to_64 = (B01001_019 + B01001_043) / population,
     pct_age_65_to_66 = (B01001_020 + B01001_044) / population,
     pct_age_67_to_69 = (B01001_021 + B01001_045) / population,
+    pct_age_65_to_69 = (B01001_020 + B01001_044 + B01001_021 + B01001_045) / population,
     pct_age_70_to_74 = (B01001_022 + B01001_046) / population,
     pct_age_75_to_79 = (B01001_023 + B01001_047) / population,
     pct_age_80_to_84 = (B01001_024 + B01001_048) / population,
     pct_age_over_85 = (B01001_025 + B01001_049) / population,
   )
-
-cat(" ok\n")
-
-# Education distribution --------------------------------------------------
-
-cat("* Education distrubtion...")
-
-edu_dist <- do.call(
-  read_acs5year,
-  c(
-    list(
-      table_contents = sapply(
-        c(4:83),
-        function(x) sprintf("B15001_%03d", x)
-      )
-    ),
-    global_args
-  )
-) %>%
-  transmute(
-    GEOID,
-    pct_edu_lt_9th_grade = (
-      B15001_004 + B15001_012 + B15001_020 + B15001_028 + B15001_036 + B15001_045+ B15001_053 + B15001_061 + B15001_069 + B15001_077
-    ) / population,
-    pct_edu_9th_to_12th_grade = (
-      B15001_005 + B15001_013 + B15001_021 + B15001_029 + B15001_037 + B15001_046 + B15001_054 + B15001_062 + B15001_070 + B15001_078
-    ) / population,
-    pct_edu_high_school = (
-      B15001_006 + B15001_014 + B15001_022 + B15001_030 + B15001_038 + B15001_047 + B15001_055 + B15001_063 + B15001_071 + B15001_079
-    ) / population,
-    pct_edu_some_college = (
-      B15001_007 + B15001_015 + B15001_023 + B15001_031 + B15001_039 + B15001_048 + B15001_056 + B15001_064 + B15001_072 + B15001_080
-    ) / population,
-    pct_edu_associate = (
-      B15001_008 + B15001_016 + B15001_024 + B15001_032 + B15001_040 + B15001_049 + B15001_057 + B15001_065 + B15001_073 + B15001_081
-    ) / population,
-    pct_edu_bachelors = (
-      B15001_009 + B15001_017 + B15001_025 + B15001_033 + B15001_041 + B15001_050 + B15001_058 + B15001_066 + B15001_074 + B15001_082
-    ) / population,
-    pct_edu_graduate_or_professional = (
-      B15001_010 + B15001_018 + B15001_026 + B15001_034 + B15001_042 + B15001_051 + B15001_059 + B15001_067 + B15001_075 + B15001_083
-    ) / population,
-  )
-
 
 cat(" ok\n")
 
@@ -806,15 +910,18 @@ cat(sprintf("Joining and writing to %s...", output_file))
 Reduce(
   function(x, y) left_join(x, y, by = "GEOID"),
   list(
-    census_vars,
-    housing_population,
-    housing_all_units,
-    housing_occupied_units,
+    total_population,
+    households,
+    occupied_housing_units,
+    housing_units,
     employment,
-    #nullable_census_vars, # deprecated by employment
+    population_18_years_and_over,
+    workers_16_years_and_over,
+    workers_16_years_and_over_not_wfh,
+    
     currency_vars,
     age_dist,
-    edu_dist,
+    
     gini_index,
     ethnic_fractionalization,
     ice_income,
